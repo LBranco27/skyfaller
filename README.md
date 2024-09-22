@@ -1,4 +1,4 @@
-# 🎮 Skyfalle
+# 🎮 Skyfaller
 
 ## 🛠️ Introduction
 This is an endless falling game built using OpenGL and GLFW. The player navigates a falling character while avoiding obstacles that spawn from above. The game provides a simple but engaging experience with real-time 3D graphics.
