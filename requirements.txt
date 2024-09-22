@@ -1,0 +1,6 @@
+PyOpenGL
+PyGLM
+PyGLFW
+glfw
+numpy
+loguru
