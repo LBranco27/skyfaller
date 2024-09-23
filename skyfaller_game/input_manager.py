@@ -17,3 +17,7 @@ class InputManager:
             config.player_pos[0] -= 0.1
         if glfw.get_key(self.window, glfw.KEY_RIGHT) == glfw.PRESS:
             config.player_pos[0] += 0.1
+        if glfw.get_key(self.window, glfw.KEY_UP) == glfw.PRESS:
+            config.player_pos[2] -= 0.1
+        if glfw.get_key(self.window, glfw.KEY_DOWN) == glfw.PRESS:
+            config.player_pos[2] += 0.1
