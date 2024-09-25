@@ -8,6 +8,42 @@ import config
 import numpy as np
 from loguru import logger
 
+
+def compile_shader(source, shader_type):
+    shader = glCreateShader(shader_type)
+    glShaderSource(shader, source)
+    glCompileShader(shader)
+
+    if not glGetShaderiv(shader, GL_COMPILE_STATUS):
+        error_message = glGetShaderInfoLog(shader)
+        raise RuntimeError(f"Shader compilation error: {error_message.decode()}")
+
+    return shader
+
+
+def create_shader_program(vertex_source, fragment_source):
+    print('entrou')
+    vertex_shader = compile_shader(vertex_source, GL_VERTEX_SHADER)
+    fragment_shader = compile_shader(fragment_source, GL_FRAGMENT_SHADER)
+
+    program = glCreateProgram()
+    glAttachShader(program, vertex_shader)
+    glAttachShader(program, fragment_shader)
+    glLinkProgram(program)
+
+    if not glGetProgramiv(program, GL_LINK_STATUS):
+        print('pqp')
+        error_message = glGetProgramInfoLog(program)
+        raise RuntimeError(f"Shader program linking error: {error_message.decode()}")
+
+
+    glDeleteShader(vertex_shader)
+    glDeleteShader(fragment_shader)
+
+    print('saiu')
+    return program
+
+
 class Screen:
     """
     Represents the game screen.
@@ -21,6 +57,10 @@ class Screen:
     def __init__(self):
         self.last_spawn_time = time.time()
         self.spawn_interval = 1.0
+        self.lightPos_location = None
+        self.viewPos_location = None
+        self.lightColor_location = None
+        self.objectColor_location = None
 
     def initialize(self):
         """
@@ -36,13 +76,34 @@ class Screen:
             glfw.terminate()
             return False
         glfw.make_context_current(self.window)
-        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST)
         glViewport(0, 0, config.width, config.height)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(90, config.width / config.height, 0.1, 50.0)
         glMatrixMode(GL_MODELVIEW)
         self.configure_fog()
+
+        with open("shaders/vertex_shader.glsl", "r") as f:
+            vertex_source = f.read()
+        with open("shaders/fragment_shader.glsl", "r") as f:
+            fragment_source = f.read()
+
+        self.shader_program = create_shader_program(vertex_source, fragment_source)
+        print(self.shader_program)
+        glUseProgram(self.shader_program)
+
+        self.lightPos_location = glGetUniformLocation(self.shader_program, "lightPos")
+        self.viewPos_location = glGetUniformLocation(self.shader_program, "viewPos")
+        self.lightColor_location = glGetUniformLocation(self.shader_program, "lightColor")
+        self.objectColor_location = glGetUniformLocation(self.shader_program, "objectColor")
+
+        # Defina valores para os uniformes
+        glUniform3f(self.lightPos_location, 0.0, 10.0, 0.0)  # Posição da luz
+        glUniform3f(self.viewPos_location, 0.0, 0.0, 5.0)   # Posição da câmera (ou do jogador)
+        glUniform3f(self.lightColor_location, 1.0, 1.0, 1.0)  # Cor da luz
+        glUniform3f(self.objectColor_location, 0.0, 1.0, 0.0)  # Cor do objeto (por exemplo, verde)
+
         return True
 
     def configure_fog(self):
@@ -124,6 +185,10 @@ class Screen:
         Returns:
             None
         """
+        glUseProgram(self.shader_program)
+        glUniform3f(self.lightPos_location, 0.0, 10.0, 0.0)  # Atualiza a posição da luz
+        glUniform3f(self.viewPos_location, config.player_pos[0], config.player_pos[1], 5.0)  # Posição da câmera
+
         glClearColor(0.7, 0.9, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
