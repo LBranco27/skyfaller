@@ -12,3 +12,6 @@ obstacle_size = 2.0
 obstacle_speed = 0.000005
 max_obstacles = 20
 obstacle_distance = 100
+
+score = 0
+lives = 3

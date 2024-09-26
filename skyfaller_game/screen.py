@@ -8,6 +8,10 @@ import config
 import numpy as np
 from loguru import logger
 
+import freetype
+import os
+font_path = os.path.join(os.path.dirname(__file__), "assets/Roboto-Regular.ttf")
+
 class Screen:
     """
     Represents the game screen.
@@ -21,7 +25,9 @@ class Screen:
     def __init__(self):
         self.last_spawn_time = time.time()
         self.spawn_interval = 1.0
-
+        self.start_time = time.time()
+        self.font = freetype.Face(font_path)
+        
     def initialize(self):
         """
         Initializes the game screen.
@@ -95,12 +101,20 @@ class Screen:
         Returns:
             None
         """
+        self.update_speed()
         for obs in config.obstacles:
             obs[1] += config.obstacle_speed
             if obs[1] > camera_y + 20:
                 obs[1] = camera_y - config.obstacle_distance
                 obs[0] = random.uniform(-20, 20)
                 obs[2] = random.uniform(-20, 20)
+
+    def update_speed(self):
+        """
+        Increases the speed of obstacles progressively over time.
+        """
+        elapsed_time = time.time() - self.start_time
+        config.obstacle_speed = 0.005 + (elapsed_time * 0.0001)
 
     def _check_collision(self):
         """
@@ -111,11 +125,27 @@ class Screen:
         """
         for obs in config.obstacles:
             if np.all(np.abs(obs - config.player_pos) < config.player_size + config.obstacle_size):
-                print("OBS ", obs)
-                print("PLAYER ", config.player_pos)
+                config.lives -= 1
+                if config.lives <= 0:
+                    config.game_over = True
+                else:
+                    self.shake_cube(obs)
+                #print("OBS ", obs)
+                #print("PLAYER ", config.player_pos)
                 return True
         return False
 
+    def shake_cube(self, obs):
+        """
+        Makes the cube tremble and change color when the player loses a life.
+        """
+        for _ in range(10):
+            obs[0] += random.uniform(-0.5, 0.5)
+            obs[2] += random.uniform(-0.5, 0.5)
+            Cube(obs, config.obstacle_size, (1, 0, 0)).draw() 
+            glfw.swap_buffers(self.window)
+            time.sleep(0.05)
+            
     def _spawn_obstacles(self, camera_y):
         """
         Spawns new obstacles on the screen.
@@ -133,6 +163,50 @@ class Screen:
             z = random.uniform(-20, 20)
             config.obstacles.append(np.array([x, y, z]))
             self.last_spawn_time = current_time
+
+    def render_text(self, text, x, y, scale=30):
+        self.font.set_char_size(scale * 64)
+        glPushMatrix()
+
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+
+        # Define uma projeção ortográfica com base no tamanho da janela para deixar os textos fixos
+        glOrtho(0, config.width, 0, config.height, -1, 1)
+
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+
+        glRasterPos2f(x * config.width, y * config.height)
+
+        glPixelZoom(1, -1)
+
+        glColor3f(1, 1, 1)
+
+        pen_x = x * config.width
+        for char in text:
+            self.font.load_char(char)
+            bitmap = self.font.glyph.bitmap
+            width = bitmap.width
+            rows = bitmap.rows
+            glDrawPixels(width, rows, GL_LUMINANCE, GL_UNSIGNED_BYTE, bitmap.buffer)
+            pen_x += self.font.glyph.advance.x >> 6
+            glRasterPos2f(pen_x, y * config.height)
+
+        glPixelZoom(1, 1) 
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+
+    def render_score(self, score):
+        self.render_text(f'Pontuação: {score}   Vidas: {config.lives}', 0.05, 0.9)  
+
+    
+    def update_score(self):
+        elapsed_time = time.time() - self.start_time
+        config.score = int(elapsed_time * 10)  
 
     def render(self):
         """
@@ -166,8 +240,13 @@ class Screen:
             obstacle_cube.draw()
 
         if self._check_collision():
-            logger.critical("Collision detected!")
+            logger.critical("Collision detected!\n\n")
             config.game_over = True
 
+        self.update_score()
+        self.render_score(config.score)
+        
         glfw.swap_buffers(self.window)
         glfw.poll_events()
+    
+        #time.sleep(1 / 60) 
