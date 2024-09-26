@@ -47,29 +47,69 @@ class Screen:
         if not self.window:
             glfw.terminate()
             return False
+
         glfw.make_context_current(self.window)
         glEnable(GL_DEPTH_TEST)
-        glEnable(GL_LIGHTING)
-        glEnable(GL_LIGHT0)
-        glEnable(GL_COLOR_MATERIAL)  # Enable color tracking
-        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)  # Set color to affect ambient and diffuse
-        glEnable(GL_DEPTH_TEST)
         glViewport(0, 0, config.width, config.height)
+        
+        self.setup_lighting()
+
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(90, config.width / config.height, 0.1, 50.0)
         glMatrixMode(GL_MODELVIEW)
+        
         self.configure_fog()
+
+        return True
+
+    def setup_lighting(self):
+        """
+        Configures the lighting in the scene with diffuse, ambient, and specular light.
+        """
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT0)
+
+        light_position = [0.0, 10.0, 10.0, 1.0]  
+        glLightfv(GL_LIGHT0, GL_POSITION, light_position)
+
+        light_diffuse = [1.0, 1.0, 1.0, 1.0]  
+        light_specular = [1.0, 1.0, 1.0, 1.0]  
+        light_ambient = [0.2, 0.2, 0.2, 1.0]  
+
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse)
+        glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular)
+        glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient)
 
         mat_specular = [0.9, 0.9, 0.9, 1.0]  # color of specular highlights
         mat_shininess = [0.9]  # the "shininess" of the specular highlight
         glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular)
         glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess)
 
-        light_position = [100.0, 100.0, 200.0, 1.0]
-        glLightfv(GL_LIGHT0, GL_POSITION, light_position)
+        glEnable(GL_COLOR_MATERIAL)  # Enable color tracking
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)  # Set color to affect ambient and diffuse
 
-        return True
+    def load_texture(self, image_path):
+        """
+        Loads a texture from an image file and returns the texture ID.
+
+        Args:
+            image_path (str): The path to the image file.
+
+        Returns:
+            int: The OpenGL texture ID.
+        """
+        texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, texture)
+        surface = pygame.image.load(image_path)
+        image_data = pygame.image.tostring(surface, "RGB", True)
+        
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, surface.get_width(), surface.get_height(), 0, GL_RGB, GL_UNSIGNED_BYTE, image_data)
+        
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        
+        return texture
 
 
     def configure_fog(self):
