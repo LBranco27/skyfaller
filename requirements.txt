@@ -4,3 +4,5 @@ PyGLFW
 glfw
 numpy
 loguru
+moderngl
+moderngl_window
