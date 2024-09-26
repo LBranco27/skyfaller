@@ -127,7 +127,7 @@ class Screen:
     def _check_collision(self):
         """
         Checks if the player collides with any obstacles and removes the collided obstacle.
-
+        
         Returns:
             bool: True if collision is detected, False otherwise.
         """
@@ -137,10 +137,29 @@ class Screen:
                 config.obstacles.pop(i)
                 logger.info(f"Obstacle {i} removed. Lives remaining: {config.lives}")
                 
+                self.shake_player()
+                
                 if config.lives <= 0:
                     config.game_over = True
                 return True
         return False
+
+    def shake_player(self):
+        """
+        Shakes the player cube to simulate a damage effect.
+        """
+        original_pos = config.player_pos.copy()
+        for _ in range(10): 
+            config.player_pos[0] += random.uniform(-0.5, 0.5)  
+            config.player_pos[2] += random.uniform(-0.5, 0.5)  
+            player_cube = Cube(config.player_pos, config.player_size, (1, 0, 0)) 
+            player_cube.draw()
+            glfw.swap_buffers(self.window)
+            glfw.poll_events()
+            time.sleep(0.05)  
+
+        config.player_pos = original_pos
+
 
 
 
