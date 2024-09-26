@@ -36,6 +36,9 @@ class Screen:
             glfw.terminate()
             return False
         glfw.make_context_current(self.window)
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT0)
         glEnable(GL_DEPTH_TEST);
         glViewport(0, 0, config.width, config.height)
         glMatrixMode(GL_PROJECTION)
@@ -43,6 +46,20 @@ class Screen:
         gluPerspective(90, config.width / config.height, 0.1, 50.0)
         glMatrixMode(GL_MODELVIEW)
         self.configure_fog()
+
+        mat_specular = [ 0.9, 0.9, 0.9, 1.0 ] #color of specular highlights
+        mat_diffuse =[ 0.2, 0.8, 0.6, 1.0 ] #color of diffuse shading
+        mat_ambient= [ 0.2, 0.9, 0.0, 1.0 ] #color of ambient light
+        mat_shininess = [ 0.9 ] #the "shininess" of the specular highlight
+ 
+        glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular)
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse)
+        glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient)
+        glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess)
+
+        light_position = [ 100.0, 100.0, 200.0, 1.0 ]
+        glLightfv(GL_LIGHT0, GL_POSITION, light_position)
+
         return True
 
     def configure_fog(self):
@@ -132,9 +149,14 @@ class Screen:
 
         config.player_pos[1] -= config.fall_speed
 
+        print("PLAYER ", config.player_pos)
         camera_y = config.player_pos[1] - 3
         self._move_obstacles(camera_y)
         self._spawn_obstacles(camera_y)
+
+        glLightfv(GL_LIGHT0, GL_POSITION, [config.player_pos[0], config.player_pos[1], config.player_pos[2]+5, 1.0])
+        glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.05)
+        glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.01)
 
         player_cube = Cube(config.player_pos, config.player_size, (0, 1, 0))
         player_cube.draw()
