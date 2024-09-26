@@ -8,3 +8,4 @@ moderngl
 moderngl_window
 PyOpenGL_accelerate
 freetype-py
+pygame

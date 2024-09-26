@@ -2,7 +2,6 @@ import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-
 from shapes.cube import Cube
 import random
 import time
@@ -10,7 +9,6 @@ import config
 import numpy as np
 from loguru import logger
 
-import freetype
 import os
 font_path = os.path.join(os.path.dirname(__file__), "assets/Roboto-Regular.ttf")
 
@@ -33,8 +31,8 @@ class Screen:
         self.start_time = time.time()
         
         pygame.init()
-        pygame.freetype.init()
-        self.font = pygame.freetype.SysFont(None, 24)  
+        freetype.init()
+        self.font = freetype.SysFont(None, 24)  
         
     def initialize(self):
         """
@@ -53,6 +51,8 @@ class Screen:
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
+        glEnable(GL_COLOR_MATERIAL)  # Enable color tracking
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)  # Set color to affect ambient and diffuse
         glEnable(GL_DEPTH_TEST)
         glViewport(0, 0, config.width, config.height)
         glMatrixMode(GL_PROJECTION)
@@ -61,20 +61,16 @@ class Screen:
         glMatrixMode(GL_MODELVIEW)
         self.configure_fog()
 
-        mat_specular = [ 0.9, 0.9, 0.9, 1.0 ] #color of specular highlights
-        mat_diffuse =[ 0.2, 0.8, 0.6, 1.0 ] #color of diffuse shading
-        mat_ambient= [ 0.2, 0.9, 0.0, 1.0 ] #color of ambient light
-        mat_shininess = [ 0.9 ] #the "shininess" of the specular highlight
- 
+        mat_specular = [0.9, 0.9, 0.9, 1.0]  # color of specular highlights
+        mat_shininess = [0.9]  # the "shininess" of the specular highlight
         glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular)
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse)
-        glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient)
         glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess)
 
-        light_position = [ 100.0, 100.0, 200.0, 1.0 ]
+        light_position = [100.0, 100.0, 200.0, 1.0]
         glLightfv(GL_LIGHT0, GL_POSITION, light_position)
 
         return True
+
 
     def configure_fog(self):
         """
@@ -146,22 +142,30 @@ class Screen:
 
     def shake_player(self):
         """
-        Shakes the player cube to simulate a damage effect.
+        Shakes the player cube to simulate a damage effect, changing its color to red during the shake.
         """
         original_pos = config.player_pos.copy()
-        for _ in range(10): 
-            config.player_pos[0] += random.uniform(-0.5, 0.5)  
-            config.player_pos[2] += random.uniform(-0.5, 0.5)  
-            player_cube = Cube(config.player_pos, config.player_size, (1, 0, 0)) 
+
+        # Shake and change color to red during the shake
+        glEnable(GL_COLOR_MATERIAL)  # Ensure color material is enabled
+        for _ in range(10):
+            config.player_pos[0] += random.uniform(-0.7, 0.7)  # Shake on the x-axis
+            config.player_pos[2] += random.uniform(-0.7, 0.7)  # Shake on the z-axis
+
+            # Set color to red during the shake
+            glColor3f(1, 0, 0)  # Red color for the player
+            player_cube = Cube(config.player_pos, config.player_size, (1, 0, 0))  # Pass the red color to Cube
             player_cube.draw()
+
             glfw.swap_buffers(self.window)
             glfw.poll_events()
-            time.sleep(0.05)  
+            time.sleep(0.05)  # Small delay between shakes
 
+        # Restore the original position and set color back to green
         config.player_pos = original_pos
-
-
-
+        glColor3f(0, 1, 0)
+        player_cube = Cube(config.player_pos, config.player_size, (0, 1, 0))  
+        player_cube.draw()
 
     def shake_cube(self, obs):
         """
@@ -233,9 +237,6 @@ class Screen:
     def render(self):
         """
         Renders the game screen.
-
-        Returns:
-            None
         """
         glClearColor(0.7, 0.9, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -255,23 +256,24 @@ class Screen:
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.05)
         glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.01)
 
-        # Draw player cube
+        # Draw player cube (green)
+        glEnable(GL_COLOR_MATERIAL)  
+        glColor3f(0, 1, 0)  
         player_cube = Cube(config.player_pos, config.player_size, (0, 1, 0))
         player_cube.draw()
 
-        # Draw remaining obstacles
+        # Draw remaining obstacles (blue)
         for obs in config.obstacles:
-            obstacle_cube = Cube(obs, config.obstacle_size, (1, 0, 0))
+            glColor3f(0, 0, 1)
+            obstacle_cube = Cube(obs, config.obstacle_size, (0, 0, 1))
             obstacle_cube.draw()
 
         if self._check_collision():
             logger.critical("Collision detected!")
-        
+
         self.update_score()
         self.render_score(config.score)
-        
+
         glfw.swap_buffers(self.window)
         glfw.poll_events()
-
-    
-        #time.sleep(1 / 60) # limits fps of game to 60
+        
