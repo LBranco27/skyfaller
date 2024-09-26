@@ -126,22 +126,23 @@ class Screen:
 
     def _check_collision(self):
         """
-        Checks if the player collides with any obstacles.
+        Checks if the player collides with any obstacles and removes the collided obstacle.
 
         Returns:
             bool: True if collision is detected, False otherwise.
         """
-        for obs in config.obstacles:
+        for i, obs in enumerate(config.obstacles):
             if np.all(np.abs(obs - config.player_pos) < config.player_size + config.obstacle_size):
                 config.lives -= 1
+                config.obstacles.pop(i)
+                logger.info(f"Obstacle {i} removed. Lives remaining: {config.lives}")
+                
                 if config.lives <= 0:
                     config.game_over = True
-                else:
-                    self.shake_cube(obs)
-                #print("OBS ", obs)
-                #print("PLAYER ", config.player_pos)
                 return True
         return False
+
+
 
     def shake_cube(self, obs):
         """
@@ -221,7 +222,7 @@ class Screen:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
         glRotate(90, 1, 0, 0)
-        glTranslatef(0, -config.player_pos[1]-10, 0)
+        glTranslatef(0, -config.player_pos[1] - 10, 0)
 
         config.player_pos[1] -= config.fall_speed
 
@@ -230,25 +231,28 @@ class Screen:
         self._move_obstacles(camera_y)
         self._spawn_obstacles(camera_y)
 
-        glLightfv(GL_LIGHT0, GL_POSITION, [config.player_pos[0], config.player_pos[1], config.player_pos[2]+5, 1.0])
+        # Set light position
+        glLightfv(GL_LIGHT0, GL_POSITION, [config.player_pos[0], config.player_pos[1], config.player_pos[2] + 5, 1.0])
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.05)
         glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.01)
 
+        # Draw player cube
         player_cube = Cube(config.player_pos, config.player_size, (0, 1, 0))
         player_cube.draw()
 
+        # Draw remaining obstacles
         for obs in config.obstacles:
-            obstacle_cube = Cube(obs, config.obstacle_size, (1,0,0))#random.uniform(config.obstacle_size, 3), (1, 0, 0))
+            obstacle_cube = Cube(obs, config.obstacle_size, (1, 0, 0))
             obstacle_cube.draw()
 
         if self._check_collision():
-            logger.critical("Collision detected!\n\n")
-            config.game_over = True
-
+            logger.critical("Collision detected!")
+        
         self.update_score()
         self.render_score(config.score)
         
         glfw.swap_buffers(self.window)
         glfw.poll_events()
+
     
-        #time.sleep(1 / 60) 
+        #time.sleep(1 / 60) # limits fps of game to 60
