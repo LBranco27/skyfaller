@@ -1,6 +1,8 @@
 import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
+
+
 from shapes.cube import Cube
 import random
 import time
@@ -11,6 +13,9 @@ from loguru import logger
 import freetype
 import os
 font_path = os.path.join(os.path.dirname(__file__), "assets/Roboto-Regular.ttf")
+
+import pygame
+from pygame import freetype
 
 class Screen:
     """
@@ -26,7 +31,10 @@ class Screen:
         self.last_spawn_time = time.time()
         self.spawn_interval = 1.0
         self.start_time = time.time()
-        self.font = freetype.Face(font_path)
+        
+        pygame.init()
+        pygame.freetype.init()
+        self.font = pygame.freetype.SysFont(None, 24)  
         
     def initialize(self):
         """
@@ -164,49 +172,43 @@ class Screen:
             config.obstacles.append(np.array([x, y, z]))
             self.last_spawn_time = current_time
 
-    def render_text(self, text, x, y, scale=30):
-        self.font.set_char_size(scale * 64)
-        glPushMatrix()
+    def render_text(self, text, x, y):
+        surface, _ = self.font.render(text, (255, 255, 255))
+        text_data = pygame.image.tostring(surface, "RGBA", True)
+        width, height = surface.get_size()
+
+        glRasterPos2f(x, y)
+        glDrawPixels(width, height, GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+
+    def render_text(self, text, x, y):
+        surface, _ = self.font.render(text, (255, 255, 255))
+        text_data = pygame.image.tostring(surface, "RGBA", True)
+        width, height = surface.get_size()
 
         glMatrixMode(GL_PROJECTION)
         glPushMatrix()
         glLoadIdentity()
-
-        # Define uma projeção ortográfica com base no tamanho da janela para deixar os textos fixos
         glOrtho(0, config.width, 0, config.height, -1, 1)
 
         glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
         glLoadIdentity()
 
-        glRasterPos2f(x * config.width, y * config.height)
+        glRasterPos2f(x, y)
+        glDrawPixels(width, height, GL_RGBA, GL_UNSIGNED_BYTE, text_data)
 
-        glPixelZoom(1, -1)
-
-        glColor3f(1, 1, 1)
-
-        pen_x = x * config.width
-        for char in text:
-            self.font.load_char(char)
-            bitmap = self.font.glyph.bitmap
-            width = bitmap.width
-            rows = bitmap.rows
-            glDrawPixels(width, rows, GL_LUMINANCE, GL_UNSIGNED_BYTE, bitmap.buffer)
-            pen_x += self.font.glyph.advance.x >> 6
-            glRasterPos2f(pen_x, y * config.height)
-
-        glPixelZoom(1, 1) 
         glMatrixMode(GL_PROJECTION)
         glPopMatrix()
         glMatrixMode(GL_MODELVIEW)
         glPopMatrix()
 
     def render_score(self, score):
-        self.render_text(f'Pontuação: {score}   Vidas: {config.lives}', 0.05, 0.9)  
+        self.render_text(f'Pontuação: {score}   Vidas: {config.lives}', 10, config.height - 30)
 
     
     def update_score(self):
         elapsed_time = time.time() - self.start_time
-        config.score = int(elapsed_time * 10)  
+        config.score = int(elapsed_time * 5)  
 
     def render(self):
         """
