@@ -10,12 +10,12 @@ game_over = False
 
 player_pos = np.array([0.0, 0.0, 0.0])
 player_size = 1.0
-fall_speed = 0.1
+fall_speed = 0.04
 
 obstacles = []
 obstacle_size = 2.0
 obstacle_speed = 0.000005
-max_obstacles = 25
+max_obstacles = 30
 obstacle_distance = 100
 
 score = 0
