@@ -27,7 +27,7 @@ class Screen:
 
     def __init__(self):
         self.last_spawn_time = time.time()
-        self.spawn_interval = 1.0
+        self.spawn_interval = random.uniform(0.5, 1.5)
         self.start_time = time.time()
         
         pygame.init()
@@ -158,11 +158,12 @@ class Screen:
         """
         self.update_speed()
         for obs in config.obstacles:
-            obs[1] += config.obstacle_speed
-            if obs[1] > camera_y + 20:
-                obs[1] = camera_y - config.obstacle_distance
-                obs[0] = random.uniform(-20, 20)
-                obs[2] = random.uniform(-20, 20)
+            obs["position"][1] += config.obstacle_speed 
+            if obs["position"][1] > camera_y + 20:  
+                obs["position"][1] = camera_y - config.obstacle_distance
+                obs["position"][0] = random.uniform(-20, 20) 
+                obs["position"][2] = random.uniform(-20, 20) 
+
     
     def _spawn_obstacles(self, camera_y):
         """
@@ -176,13 +177,32 @@ class Screen:
         """
         current_time = time.time()
         if current_time - self.last_spawn_time > self.spawn_interval and len(config.obstacles) < config.max_obstacles:
-            x = random.uniform(-20, 20)
-            y = camera_y - config.obstacle_distance
-            z = random.uniform(-20, 20)
-            config.obstacles.append(np.array([x, y, z]))
+            x = random.uniform(-30, 30)  
+            y = camera_y - random.uniform(10, 50)  
+            z = random.uniform(-30, 30)  
+
+            size = random.uniform(1.0, 6.0)  
+
+            config.obstacles.append({
+                "position": np.array([x, y, z]),
+                "size": size
+            })
+
             self.last_spawn_time = current_time
+            self.spawn_interval = random.uniform(0.5, 1.5)
 
     #logic of game and collisions
+    def limit_player_movement(self):
+        if config.player_pos[0] < config.left_bound:
+            config.player_pos[0] = config.left_bound
+        elif config.player_pos[0] > config.right_bound:
+            config.player_pos[0] = config.right_bound
+
+        if config.player_pos[2] < config.bottom_bound:
+            config.player_pos[2] = config.bottom_bound
+        elif config.player_pos[2] > config.top_bound:
+            config.player_pos[2] = config.top_bound
+            
     def _check_collision(self):
         """
         Checks if the player collides with any obstacles and removes the collided obstacle.
@@ -191,7 +211,12 @@ class Screen:
             bool: True if collision is detected, False otherwise.
         """
         for i, obs in enumerate(config.obstacles):
-            if np.all(np.abs(obs - config.player_pos) < config.player_size + config.obstacle_size):
+            # Access the position from the obstacle dictionary
+            obstacle_position = obs["position"]
+            obstacle_size = obs["size"]
+
+            # Check for collision between player and obstacle using positions and sizes
+            if np.all(np.abs(obstacle_position - config.player_pos) < config.player_size + obstacle_size):
                 config.lives -= 1
                 config.obstacles.pop(i)
                 logger.info(f"Obstacle {i} removed. Lives remaining: {config.lives}")
@@ -202,6 +227,7 @@ class Screen:
                     config.game_over = True
                 return True
         return False
+
     
     def shake_player(self):
         """
@@ -241,18 +267,20 @@ class Screen:
             glfw.swap_buffers(self.window)
             time.sleep(0.05)
     
-    def limit_player_movement(self):
-        if config.player_pos[0] < config.left_bound:
-            config.player_pos[0] = config.left_bound
-        elif config.player_pos[0] > config.right_bound:
-            config.player_pos[0] = config.right_bound
 
-        if config.player_pos[2] < config.bottom_bound:
-            config.player_pos[2] = config.bottom_bound
-        elif config.player_pos[2] > config.top_bound:
-            config.player_pos[2] = config.top_bound
             
     #renders
+    def render_obstacles(self):
+        """
+        Renders the obstacles, adjusting their size dynamically.
+
+        """
+        for obs in config.obstacles:
+            size = obs["size"]
+            position = obs["position"]
+            cube = Cube(position, size, (0, 0, 1))  
+            cube.draw()
+            
     def render_text(self, text, x, y):
         surface, _ = self.font.render(text, (255, 255, 255))
         text_data = pygame.image.tostring(surface, "RGBA", True)
@@ -294,44 +322,52 @@ class Screen:
         """
         Renders the game screen.
         """
+        # Clear the screen with a sky-blue color
         glClearColor(0.7, 0.9, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        
+        # Reset transformations and set the view
         glLoadIdentity()
         glRotate(90, 1, 0, 0)
-        glTranslatef(0, -config.player_pos[1] - 10, 0)
-
+        glTranslatef(0, -config.player_pos[1] - 10, 0) 
+        
+        # Update the player's position (falling effect)
         config.player_pos[1] -= config.fall_speed
 
+        # Ensure player stays within bounds
         self.limit_player_movement()
-        
-        #print("PLAYER ", config.player_pos)
+
+        # Handle obstacles: move them and spawn new ones if necessary
         camera_y = config.player_pos[1] - 3
         self._move_obstacles(camera_y)
         self._spawn_obstacles(camera_y)
 
-        # Set light position
+        # Set the light position relative to the player
         glLightfv(GL_LIGHT0, GL_POSITION, [config.player_pos[0], config.player_pos[1], config.player_pos[2] + 5, 1.0])
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.05)
         glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.01)
 
-        # Draw player cube (green)
-        glEnable(GL_COLOR_MATERIAL)  
-        glColor3f(0, 1, 0)  
+        # Draw the player cube (green)
+        glEnable(GL_COLOR_MATERIAL)
+        glColor3f(0, 1, 0)  # Green color for the player
         player_cube = Cube(config.player_pos, config.player_size, (0, 1, 0))
         player_cube.draw()
 
-        # Draw remaining obstacles (blue)
-        for obs in config.obstacles:
-            glColor3f(0, 0, 1)
-            obstacle_cube = Cube(obs, config.obstacle_size, (0, 0, 1))
-            obstacle_cube.draw()
+        # Draw all the obstacles with their specific sizes and positions
+        self.render_obstacles()
 
+        # Check for any collisions between the player and obstacles
         if self._check_collision():
             logger.critical("Collision detected!")
 
+        # Update the score based on elapsed time and render it
         self.update_score()
         self.render_score(config.score)
 
+        # Swap the front and back buffers to display the rendered frame
         glfw.swap_buffers(self.window)
+        
+        # Poll for input events (e.g., keypresses)
         glfw.poll_events()
+
         
