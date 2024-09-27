@@ -1,9 +1,10 @@
 from OpenGL.GL import *
 from PIL import Image
 
+#unused
 class TextureLoader:
     """
-    Class to handle loading textures using the PIL library.
+    Class to handle loading textures for Cube of Player and Obstacles, using the PIL library.
     """
 
     @staticmethod
