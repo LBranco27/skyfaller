@@ -9,9 +9,6 @@ import config
 import numpy as np
 from loguru import logger
 
-import os
-font_path = os.path.join(os.path.dirname(__file__), "assets/Roboto-Regular.ttf")
-
 import pygame
 from pygame import freetype
 
@@ -33,6 +30,7 @@ class Screen:
         pygame.init()
         freetype.init()
         self.font = freetype.SysFont(None, 24)  
+    
     
     #initializations and configs
     def initialize(self):
@@ -135,6 +133,7 @@ class Screen:
         # Set fog density (if using GL_EXP or GL_EXP2)
         # glFogf(GL_FOG_DENSITY, 0.05)  # Optional for exponential fog modes
 
+
     # states of updates in game
     def update_speed(self):
         """
@@ -164,7 +163,6 @@ class Screen:
                 obs["position"][0] = random.uniform(-20, 20) 
                 obs["position"][2] = random.uniform(-20, 20) 
 
-    
     def _spawn_obstacles(self, camera_y):
         """
         Spawns new obstacles on the screen.
@@ -190,6 +188,7 @@ class Screen:
 
             self.last_spawn_time = current_time
             self.spawn_interval = random.uniform(0.5, 1.5)
+
 
     #logic of game and collisions
     def limit_player_movement(self):
@@ -228,7 +227,6 @@ class Screen:
                 return True
         return False
 
-    
     def shake_player(self):
         """
         Shakes the player cube to simulate a damage effect, changing its color to red during the shake.
@@ -267,8 +265,7 @@ class Screen:
             glfw.swap_buffers(self.window)
             time.sleep(0.05)
     
-
-            
+ 
     #renders
     def render_obstacles(self):
         """
@@ -316,7 +313,7 @@ class Screen:
     
     def update_score(self):
         elapsed_time = time.time() - self.start_time
-        config.score = int(elapsed_time * 5)  
+        config.score = int(elapsed_time * 10)  
 
     def render(self):
         """
@@ -369,5 +366,3 @@ class Screen:
         
         # Poll for input events (e.g., keypresses)
         glfw.poll_events()
-
-        
