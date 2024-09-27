@@ -5,7 +5,7 @@ game_over = False
 
 player_pos = np.array([0.0, 0.0, 0.0])
 player_size = 1.0
-fall_speed = 0.2
+fall_speed = 0.1
 
 obstacles = []
 obstacle_size = 2.0
