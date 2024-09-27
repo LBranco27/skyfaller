@@ -240,6 +240,17 @@ class Screen:
             Cube(obs, config.obstacle_size, (1, 0, 0)).draw() 
             glfw.swap_buffers(self.window)
             time.sleep(0.05)
+    
+    def limit_player_movement(self):
+        if config.player_pos[0] < config.left_bound:
+            config.player_pos[0] = config.left_bound
+        elif config.player_pos[0] > config.right_bound:
+            config.player_pos[0] = config.right_bound
+
+        if config.player_pos[2] < config.bottom_bound:
+            config.player_pos[2] = config.bottom_bound
+        elif config.player_pos[2] > config.top_bound:
+            config.player_pos[2] = config.top_bound
             
     #renders
     def render_text(self, text, x, y):
@@ -291,7 +302,9 @@ class Screen:
 
         config.player_pos[1] -= config.fall_speed
 
-        print("PLAYER ", config.player_pos)
+        self.limit_player_movement()
+        
+        #print("PLAYER ", config.player_pos)
         camera_y = config.player_pos[1] - 3
         self._move_obstacles(camera_y)
         self._spawn_obstacles(camera_y)
